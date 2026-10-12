@@ -13,6 +13,72 @@ For the hub4j/github-api documentation itself, see:
 * https://github-api.kohsuke.org/[hub4j/github-api documentation]
 * https://github-api.kohsuke.org/apidocs/[hub4j/github-api Javadoc]
 
+== Avoiding secondary rate limits
+
+GitHub imposes https://docs.github.com/en/rest/using-the-rest-api/rate-limits-for-the-rest-api#about-secondary-rate-limits[secondary rate limits] based on request frequency, regardless of your primary rate limit quota.
+These are particularly easy to hit when iterating over paginated results or performing bulk mutations.
+
+The `GitHubApiUtil` class provides proactive throttling utilities to avoid triggering these limits.
+
+=== Paginated results
+
+Use `GitHubApiUtil.toStream()` to iterate over paginated GitHub API results with automatic throttling between page fetches:
+
+[source,java]
+----
+import io.quarkiverse.githubapi.GitHubApiUtil;
+
+GitHubApiUtil.toStream(repo.listIssues(GHIssueState.OPEN))
+        .filter(issue -> issue.getLabels().isEmpty())
+        .forEach(issue -> {
+            // process issue
+        });
+----
+
+=== Write operations
+
+Call `GitHubApiUtil.sleepForWriteThrottling()` between write operations:
+
+[source,java]
+----
+for (GHIssueComment comment : commentsToDelete) {
+    comment.delete();
+    GitHubApiUtil.sleepForWriteThrottling();
+}
+----
+
+=== Configuration
+
+[source,properties]
+----
+# Enable/disable throttling (default: true in prod/dev, false in tests)
+quarkus.github-api.rate-limit.throttle.enabled=true
+
+# Delay between page fetches during pagination (default: 200ms)
+quarkus.github-api.rate-limit.throttle.read=0.2s
+
+# Delay between write/delete operations (default: 1s)
+quarkus.github-api.rate-limit.throttle.write=1s
+----
+
+[NOTE]
+====
+Throttling is automatically disabled in tests to avoid slowing down test suites.
+To enable it in tests, set `quarkus.github-api.rate-limit.throttle.enabled=true`.
+====
+
+=== Retry on rate limit
+
+When a GitHub API call is denied due to a secondary rate limit,
+hub4j/github-api automatically retries with appropriate backoff.
+You can control the maximum number of retry attempts:
+
+[source,properties]
+----
+# Maximum retry attempts on secondary rate limit (default: 2, from hub4j/github-api)
+quarkus.github-api.rate-limit.retry.max-attempts=3
+----
+
 == Configuration Reference
 
 include::includes/quarkus-github-api.adoc[leveloffset=+1,opts=optional]
