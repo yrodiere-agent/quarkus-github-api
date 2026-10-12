@@ -1,0 +1,18 @@
+= Quarkus GitHub API
+
+include::./includes/attributes.adoc[]
+
+This extension wraps the https://github.com/hub4j/github-api[hub4j/github-api] library
+for use in Quarkus applications, adding:
+
+* GraalVM native image support (reflection registration, runtime-initialized classes)
+* Quarkus configuration properties for select features of hub4j/github-api
+
+For the hub4j/github-api documentation itself, see:
+
+* https://github-api.kohsuke.org/[hub4j/github-api documentation]
+* https://github-api.kohsuke.org/apidocs/[hub4j/github-api Javadoc]
+
+== Configuration Reference
+
+include::includes/quarkus-github-api.adoc[leveloffset=+1,opts=optional]
